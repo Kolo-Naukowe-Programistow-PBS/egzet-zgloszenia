@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Luka bezpieczeństwa
+    url: https://github.com/Kolo-Naukowe-Programistow-PBS/egzet-zgloszenia/security/advisories/new
+    about: Znalazłeś sposób na podejrzenie cudzych rozwiązań albo obejście logowania? Zgłoś to prywatnie, nie publicznie.
