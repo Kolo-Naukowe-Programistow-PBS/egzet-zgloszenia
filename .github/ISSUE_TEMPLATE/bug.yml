@@ -1,0 +1,31 @@
+name: Zgłoś błąd
+description: Coś nie działa w Egzecie
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dzięki za zgłoszenie! **Zgłoszenia są publiczne** – nie wklejaj tu kodu rozwiązania
+        z trwającego konkursu, haseł ani danych osobowych.
+  - type: textarea
+    id: opis
+    attributes:
+      label: Co się stało?
+      description: Co robiłeś, co się stało i czego się spodziewałeś
+    validations:
+      required: true
+  - type: input
+    id: adres
+    attributes:
+      label: Adres strony
+      placeholder: https://egzet.io.pbs.edu.pl/contests/3/problems/A
+  - type: dropdown
+    id: gdzie
+    attributes:
+      label: Gdzie?
+      options:
+        - Zadania i treści
+        - Wysyłanie / ocena rozwiązań
+        - Ranking
+        - Logowanie / konto
+        - Inne
