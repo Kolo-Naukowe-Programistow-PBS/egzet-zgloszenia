@@ -1,0 +1,51 @@
+name: Zaproponuj pomysł
+description: Nowa funkcja albo usprawnienie w Egzecie
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dzięki za pomysł! Zanim napiszesz, zerknij na [istniejące propozycje](../../issues?q=is%3Aissue+label%3Aenhancement) –
+        jeśli ktoś już to zgłosił, daj 👍 pod jego zgłoszeniem zamiast pisać nowe. **Zgłoszenia są publiczne.**
+  - type: textarea
+    id: problem
+    attributes:
+      label: Czego brakuje albo co przeszkadza?
+      description: Opisz sytuację, w której tego potrzebujesz
+      placeholder: Na konkursie nie wiem, ile zostało czasu, jeśli nie odświeżę strony…
+    validations:
+      required: true
+  - type: textarea
+    id: pomysl
+    attributes:
+      label: Jak by to mogło działać?
+      description: Twój pomysł na rozwiązanie. Mogą być szkice albo zrzuty ekranu (przeciągnij je tutaj).
+    validations:
+      required: true
+  - type: dropdown
+    id: dla_kogo
+    attributes:
+      label: Dla kogo?
+      multiple: true
+      options:
+        - Zawodnicy
+        - Autorzy zadań
+        - Organizatorzy / jury
+        - Wszyscy
+  - type: dropdown
+    id: obszar
+    attributes:
+      label: Czego dotyczy?
+      options:
+        - Zadania i treści
+        - Wysyłanie / ocena rozwiązań
+        - Ranking
+        - Konkursy i zapisy
+        - Konto i profil
+        - Wygląd / wygoda
+        - Inne
+  - type: textarea
+    id: inne
+    attributes:
+      label: Coś jeszcze?
+      description: Np. gdzie widziałeś podobne rozwiązanie (inna platforma, przykład)
