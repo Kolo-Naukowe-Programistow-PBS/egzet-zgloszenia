@@ -35,7 +35,8 @@ jobs:
                      | grep -iE '\.(png|jpe?g|gif|webp)$')
 
             jq -n --arg c "$CONTENT" --arg t "$TITLE" --arg tag "$TAG" \
-              '{content: $c, thread_name: $t, applied_tags: [$tag]}' > "$DIR/payload.json"
-            curl -sf -F "payload_json=<$DIR/payload.json" "${ARGS[@]}" "$WEBHOOK"
+              '{content: $c, thread_name: $t}
+               + (if $tag != "" then {applied_tags: [$tag]} else {} end)' > "$DIR/payload.json"
+            curl -s --fail-with-body -F "payload_json=<$DIR/payload.json" "${ARGS[@]}" "$WEBHOOK"
             sleep 1
           done
