@@ -1,0 +1,41 @@
+name: Commity na Discord
+on: push
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wyślij commity na forum
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TAG: ${{ vars.DISCORD_TAG_ID }}
+          COMMITS: ${{ toJson(github.event.commits) }}
+        run: |
+          echo "$COMMITS" | jq -c '.[]' | while read -r c; do
+            SHA=$(jq -r .id <<< "$c")
+            URL=$(jq -r .url <<< "$c")
+            AUTHOR=$(jq -r .author.name <<< "$c")
+            MSG=$(jq -r .message <<< "$c")
+            TITLE=$(head -n1 <<< "$MSG" | cut -c1-100)
+            CONTENT="${MSG:0:1700}"$'\n\n'"👤 $AUTHOR · 🔗 $URL"
+
+            # obrazki dodane/zmienione w commicie (maks. 10)
+            DIR="/tmp/img/$SHA"; mkdir -p "$DIR"
+            ARGS=(); i=0
+            while read -r f; do
+              [ -z "$f" ] || [ $i -ge 10 ] && continue
+              out="$DIR/$i-$(basename "$f")"
+              git show "$SHA:$f" > "$out"
+              ARGS+=(-F "files[$i]=@$out"); i=$((i+1))
+            done < <(git diff-tree --no-commit-id --name-only -r --diff-filter=AM "$SHA" \
+                     | grep -iE '\.(png|jpe?g|gif|webp)$')
+
+            jq -n --arg c "$CONTENT" --arg t "$TITLE" --arg tag "$TAG" \
+              '{content: $c, thread_name: $t, applied_tags: [$tag]}' > "$DIR/payload.json"
+            curl -sf -F "payload_json=<$DIR/payload.json" "${ARGS[@]}" "$WEBHOOK"
+            sleep 1
+          done
