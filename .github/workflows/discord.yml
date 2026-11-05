@@ -1,42 +1,46 @@
-name: Commity na Discord
-on: push
+name: Issues na Discord
+on:
+  issues:
+    types: [opened]
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Wyślij commity na forum
+      - name: Wyślij issue na forum
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           TAG: ${{ vars.DISCORD_TAG_ID }}
-          COMMITS: ${{ toJson(github.event.commits) }}
+          ISSUE: ${{ toJson(github.event.issue) }}
         run: |
-          echo "$COMMITS" | jq -c '.[]' | while read -r c; do
-            SHA=$(jq -r .id <<< "$c")
-            URL=$(jq -r .url <<< "$c")
-            AUTHOR=$(jq -r .author.name <<< "$c")
-            MSG=$(jq -r .message <<< "$c")
-            TITLE=$(head -n1 <<< "$MSG" | cut -c1-100)
-            CONTENT="${MSG:0:1700}"$'\n\n'"👤 $AUTHOR · 🔗 $URL"
+          NUM=$(jq -r '.number' <<< "$ISSUE")
+          TITLE=$(jq -r '.title' <<< "$ISSUE")
+          BODY=$(jq -r '.body // ""' <<< "$ISSUE")
+          URL=$(jq -r '.html_url' <<< "$ISSUE")
+          AUTHOR=$(jq -r '.user.login' <<< "$ISSUE")
 
-            # obrazki dodane/zmienione w commicie (maks. 10)
-            DIR="/tmp/img/$SHA"; mkdir -p "$DIR"
-            ARGS=(); i=0
-            while read -r f; do
-              [ -z "$f" ] || [ $i -ge 10 ] && continue
-              out="$DIR/$i-$(basename "$f")"
-              git show "$SHA:$f" > "$out"
-              ARGS+=(-F "files[$i]=@$out"); i=$((i+1))
-            done < <(git diff-tree --no-commit-id --name-only -r --diff-filter=AM "$SHA" \
-                     | grep -iE '\.(png|jpe?g|gif|webp)$')
+          # linki do obrazków z treści (markdown ![](...) i <img src="...">)
+          IMGS=$( { grep -oE '!\[[^]]*\]\([^) ]+' <<< "$BODY" | sed -E 's/.*\(//'
+                    grep -oiE '<img[^>]+src="[^"]+"' <<< "$BODY" | sed -E 's/.*src="//; s/"$//'; } || true )
 
-            jq -n --arg c "$CONTENT" --arg t "$TITLE" --arg tag "$TAG" \
-              '{content: $c, thread_name: $t}
-               + (if $tag != "" then {applied_tags: [$tag]} else {} end)' > "$DIR/payload.json"
-            curl -s --fail-with-body -F "payload_json=<$DIR/payload.json" "${ARGS[@]}" "$WEBHOOK"
-            sleep 1
-          done
+          # treść bez znaczników obrazków
+          CLEAN=$(sed -E 's/!\[[^]]*\]\([^)]*\)//g; s/<img[^>]*>//g' <<< "$BODY")
+          CONTENT="**#$NUM** · 👤 $AUTHOR"$'\n\n'"${CLEAN:0:1700}"$'\n\n'"🔗 $URL"
+
+          # pobranie obrazków jako załączniki (maks. 10)
+          DIR=/tmp/issue; mkdir -p "$DIR"
+          ARGS=(); i=0
+          while read -r img; do
+            [ -z "$img" ] || [ $i -ge 10 ] && continue
+            curl -sfL -o "$DIR/tmp" "$img" || continue
+            MIME=$(file -b --mime-type "$DIR/tmp")
+            [[ "$MIME" == image/* ]] || continue
+            out="$DIR/obraz$i.${MIME#image/}"
+            mv "$DIR/tmp" "$out"
+            ARGS+=(-F "files[$i]=@$out"); i=$((i+1))
+          done <<< "$IMGS"
+
+          jq -n --arg c "$CONTENT" --arg t "#$NUM $TITLE" --arg tag "$TAG" \
+            '{content: $c, thread_name: ($t[0:100])}
+             + (if $tag != "" then {applied_tags: [$tag]} else {} end)' > "$DIR/payload.json"
+          curl -s --fail-with-body -F "payload_json=<$DIR/payload.json" "${ARGS[@]}" "$WEBHOOK"
